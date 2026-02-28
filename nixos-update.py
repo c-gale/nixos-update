@@ -8,11 +8,9 @@ import os, json, sys
 import subprocess
 
 DefaultSettings = {
-    "Username": " ",
-    "Method": "access_token",
     "access_token": "",
     
-    "githubRepo": "c-gale/nixos-config",
+    "githubRepo": "",
     "hostname": subprocess.run(['hostname'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip("\n")
 }
 
@@ -28,8 +26,11 @@ no = [
     "nah"
 ]
 
-dirs = PlatformDirs("nixos-config-ui", "c-gale")
-SettingsPath = dirs.user_config_dir + "/settings.json"
+dirs = PlatformDirs("nixos-update", "c-gale")
+Dir = f"/etc/{dirs.appname}"
+SettingsPath = Dir + "/settings.json"
+
+print(SettingsPath)
 
 def RunGitCommand(repo_path, args):
     result = subprocess.run(
@@ -44,8 +45,8 @@ def ReadSettings() -> typing.Any:
     global DefaultSettings
     global SettingsPath
 
-    if not os.path.exists(dirs.user_config_dir):
-        os.mkdir(dirs.user_config_dir)
+    if not os.path.exists(Dir):
+        os.mkdir(Dir)
 
     if not os.path.exists(SettingsPath):
         newFile = open(SettingsPath, "w")
@@ -61,7 +62,7 @@ def ReadSettings() -> typing.Any:
 def GetRepo(repoName: str, token: str, shouldUpdate: bool) -> bool:
     owner, repo = repoName.split("/") 
     clone_url = f"https://{token}@github.com/{owner}/{repo}.git"
-    repo_path = dirs.user_config_dir + "/" + repo
+    repo_path = Dir + "/" + repo
    
     RunGitCommand(repo_path, ["fetch", "origin"])
     local_commit = RunGitCommand(repo_path, ["rev-parse", "HEAD"])
@@ -95,11 +96,11 @@ if __name__ == "__main__":
     owner, repoName = user_settings["githubRepo"].split("/") 
     
     clone_url = f"https://{user_settings["access_token"]}@github.com/{owner}/{repo}.git"
-    repo_path = dirs.user_config_dir + "/" + repo.name
+    repo_path = Dir + "/" + repo.name
 
-    if not os.path.exists(dirs.user_config_dir + "/" + repo.name):
+    if not os.path.exists(Dir + "/" + repo.name):
         print("Repo does not exist, cloning... (this may take a while)")
-        RunGitCommand(dirs.user_config_dir + "/", ["clone", clone_url])
+        RunGitCommand(Dir + "/", ["clone", clone_url])
         print("Cloned repo")
 
     commit = repo.get_commits().get_page(0)[0].commit
@@ -109,7 +110,7 @@ if __name__ == "__main__":
         buildType = "boot"
     if len(sys.argv) > 1: 
         if sys.argv[1] == "-f" or sys.argv[1] == "--force":
-            subprocess.run(["sudo", "nixos-rebuild", buildType, "--flake", dirs.user_config_dir + "/" + repoName + "#" + user_settings["hostname"]])
+            subprocess.run(["sudo", "nixos-rebuild", buildType, "--flake", Dir + "/" + repoName + "#" + user_settings["hostname"]])
 
         if buildType == "boot":
             print("⚠️ You will have to restart to see changes for this update")
@@ -140,7 +141,7 @@ if __name__ == "__main__":
                 print("Updating")
             
                 GetRepo(user_settings["githubRepo"], user_settings["access_token"], True)
-                subprocess.run(["sudo", "nixos-rebuild", buildType, "--flake", dirs.user_config_dir + "/" + repoName + "#" + user_settings["hostname"]])
+                subprocess.run(["sudo", "nixos-rebuild", buildType, "--flake", Dir + "/" + repoName + "#" + user_settings["hostname"]])
                
                 if buildType == "boot":
                     print("⚠️ You will have to restart to see changes for this update")
