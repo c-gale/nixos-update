@@ -34,8 +34,6 @@ dirs = PlatformDirs("nixos-update", "c-gale")
 Dir = f"/etc/{dirs.appname}"
 SettingsPath = Dir + "/settings.json"
 
-print(SettingsPath)
-
 def RunGitCommand(repo_path, args):
     result = subprocess.run(
         ["git", "-C", repo_path] + args,
