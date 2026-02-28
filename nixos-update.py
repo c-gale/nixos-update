@@ -7,6 +7,10 @@ from platformdirs import PlatformDirs
 import os, json, sys
 import subprocess
 
+if os.getenv("USER") != "root":
+    print("Must be root, rerun with sudo!")
+    sys.exit(1)
+
 DefaultSettings = {
     "access_token": "",
     
@@ -88,29 +92,34 @@ def GetRepo(repoName: str, token: str, shouldUpdate: bool) -> bool:
 
 if __name__ == "__main__":
     user_settings = ReadSettings()
-   
+  
+    force = False
+    if len(sys.argv) > 1: 
+        if sys.argv[1] == "-f" or sys.argv[1] == "--force":
+            force = True
+
     auth = Auth.Token(user_settings["access_token"])
     g = Github(auth=auth)
 
     repo = g.get_repo(user_settings["githubRepo"])
     owner, repoName = user_settings["githubRepo"].split("/") 
     
-    clone_url = f"https://{user_settings["access_token"]}@github.com/{owner}/{repo}.git"
-    repo_path = Dir + "/" + repo.name
+    clone_url = f"https://{user_settings["access_token"]}@github.com/{owner}/{repo.name}.git"
 
     if not os.path.exists(Dir + "/" + repo.name):
         print("Repo does not exist, cloning... (this may take a while)")
         RunGitCommand(Dir + "/", ["clone", clone_url])
         print("Cloned repo")
+        force = True
 
     commit = repo.get_commits().get_page(0)[0].commit
 
     buildType = "switch"
     if commit.message.lower().find("[boot]") > 0:
         buildType = "boot"
-    if len(sys.argv) > 1: 
-        if sys.argv[1] == "-f" or sys.argv[1] == "--force":
-            subprocess.run(["sudo", "nixos-rebuild", buildType, "--flake", Dir + "/" + repoName + "#" + user_settings["hostname"]])
+        
+    if force:
+        subprocess.run(["sudo", "nixos-rebuild", buildType, "--flake", Dir + "/" + repoName + "#" + user_settings["hostname"]])
 
         if buildType == "boot":
             print("⚠️ You will have to restart to see changes for this update")
@@ -121,7 +130,6 @@ if __name__ == "__main__":
 
     Updated = GetRepo(user_settings["githubRepo"], user_settings["access_token"], False)
     if Updated:
-       
         commitMSG = {
             f"Author - {commit.author.name}",
             f"Details: \n{commit.message}"
