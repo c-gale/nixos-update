@@ -105,12 +105,13 @@ if __name__ == "__main__":
     owner, repoName = user_settings["githubRepo"].split("/") 
     
     clone_url = f"https://{user_settings["access_token"]}@github.com/{owner}/{repo.name}.git"
-
+    
+    Cloned = False
     if not os.path.exists(Dir + "/" + repo.name):
         print("Repo does not exist, cloning... (this may take a while)")
         RunGitCommand(Dir + "/", ["clone", clone_url])
         print("Cloned repo")
-        force = True
+        Cloned = True
 
     commit = repo.get_commits().get_page(0)[0].commit
 
@@ -129,7 +130,7 @@ if __name__ == "__main__":
     print("Checking if up to date...")
 
     Updated = GetRepo(user_settings["githubRepo"], user_settings["access_token"], False)
-    if Updated:
+    if Updated or Cloned:
         commitMSG = {
             f"Author - {commit.author.name}",
             f"Details: \n{commit.message}"
