@@ -95,6 +95,10 @@ if __name__ == "__main__":
     if len(sys.argv) > 1: 
         if sys.argv[1] == "-f" or sys.argv[1] == "--force":
             force = True
+    
+    if user_settings["access_token"].find("run/secrets") > 0:
+        tokenFile = open(user_settings["access_token"], "r")
+        user_settings["access_token"] = tokenFile.readline()
 
     auth = Auth.Token(user_settings["access_token"])
     g = Github(auth=auth)
